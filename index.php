@@ -21,9 +21,14 @@ if(!empty($_GET)){
 		$r=array();
 		foreach ($_FILES as $file) {
 			$name=str_replace(array("..", "/", "\\", "\n", "\r", "\0"), "_", $file['name']);
-			if(!in_array($name, array("", ".", "..", ".htaccess", "index.html", "index.php"))) {
-				move_uploaded_file($file['tmp_name'], $upload_folder.$name);
-				$r['ok'][]=$name;
+			if(!in_array($name, array("", ".", "..", ".htaccess", "index.html", "index.php"))){
+$r['e'][0]= var_export ($file, true);
+$r['e'][1]=$upload_folder.$name;
+				if(move_uploaded_file($file['tmp_name'], $upload_folder.$name)){
+					$r['ok'][]=$name;
+				}else{
+					$r['err'][]=$name;
+                        	}
 			}else{
 				$r['err'][]=$name;
 			}
