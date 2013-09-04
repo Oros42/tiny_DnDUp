@@ -81,6 +81,7 @@ $r['e'][1]=$upload_folder.$name;
 			<fieldset id="uploaded"><legend>Files uploaded</legend></fieldset> 
 		</article>
 	</section>
+	<br/><a href="https://github.com/Oros42/tiny_DnDUp">Source code</a>
 	<script type="text/javascript">
 		//<![CDATA[
 		if( navigator.appName == "Microsoft Internet Explorer"){ document.getElementById('IE').className="fail";}
