@@ -8,7 +8,7 @@ if(!file_exists($upload_folder)){
 	@mkdir($upload_folder) or die("Need to create $upload_folder with writing permission !");
 }
 if(!file_exists("./upload/.htaccess")){
-	file_put_contents($upload_folder.".htaccess", "Options -ExecCGI IncludesNoExec -Indexes
+	file_put_contents($upload_folder.".htaccess", "Options -ExecCGI -Indexes
 RemoveHandler .php .phtml .php3 .php4 .php5 .html .htm .js
 RemoveType .php .phtml .php3 .php4 .php5 .html .htm .js
 php_flag engine off
