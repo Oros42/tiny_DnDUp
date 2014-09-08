@@ -22,13 +22,13 @@ if(!empty($_GET)){
 		foreach ($_FILES as $file) {
 			$name=str_replace(array("..", "/", "\\", "\n", "\r", "\0"), "_", $file['name']);
 			if(!in_array($name, array("", ".", "..", ".htaccess", "index.html", "index.php"))){
-$r['e'][0]= var_export ($file, true);
-$r['e'][1]=$upload_folder.$name;
+				$r['e'][0]= var_export ($file, true);
+				$r['e'][1]=$upload_folder.$name;
 				if(move_uploaded_file($file['tmp_name'], $upload_folder.$name)){
 					$r['ok'][]=$name;
 				}else{
 					$r['err'][]=$name;
-                        	}
+				}
 			}else{
 				$r['err'][]=$name;
 			}
@@ -146,6 +146,47 @@ $r['e'][1]=$upload_folder.$name;
 			}
 		}
 
+		var upload = function(progress_id){
+			return  function (event) {
+				progress=document.getElementById(progress_id);
+				if (progress!= null && event.lengthComputable) {
+					var complete = (event.loaded / event.total * 100 | 0);
+					progress.value = progress.innerHTML = complete;
+				}
+			};
+		}
+
+		function onreadystatechange(xhr, progress_id){
+			return function(){
+				if(xhr.readyState == 4){
+					progress=document.getElementById(progress_id);
+					progress.value = progress.innerHTML = 100;
+					var imgs = JSON.parse(xhr.responseText);
+					if(imgs != '' && imgs.ok != undefined) {
+						for (var i = 0; i < imgs.ok.length; i++) {
+							var name = imgs.ok[i].replace('.','');
+							if(name != '' && document.getElementById('f_'+name) != undefined) {
+								var link = document.createElement('a');
+								link.href='<?php echo $upload_folder; ?>'+imgs.ok[i];
+								link.id='a_'+name;
+								link.appendChild( document.getElementById('f_'+name));
+								document.getElementById('uploaded').insertBefore(link, document.getElementById('uploaded').firstChild);
+							}
+						}
+					}
+					if(imgs != '' && imgs.err != undefined) {
+						for (var i = 0; i < imgs.err.length; i++) {
+							var name = imgs.err[i].replace('.','');
+							if(name != '' && document.getElementById('f_'+name) != undefined) {
+								document.getElementById('f_'+name).remove();
+							}
+						}
+					}
+					progress.remove();
+				}				
+			};
+		}
+
 		function send(tests, formData){
 			if (tests.formdata) {
 				formData.append('up', 1);
@@ -154,42 +195,8 @@ $r['e'][1]=$upload_folder.$name;
 				var progress_id="progress_"+new Date().getTime();
 				document.getElementById('progress_contener').innerHTML += '<progress id="'+progress_id+'" max="100" value="0">0</progress>';
 				if (tests.progress) {
-					// hack to use the variable progress_id.
-					eval("xhr.upload.onprogress = function (event) {"
-							+"progress=document.getElementById('"+progress_id+"');"
-							+"if (progress!= null && event.lengthComputable) {"
-								+"var complete = (event.loaded / event.total * 100 | 0);"
-								+"progress.value = progress.innerHTML = complete;"
-							+"}"
-						+"}");
-					eval("xhr.onreadystatechange = function(){"
-							+"if(xhr.readyState == 4){"
-								+"progress=document.getElementById('"+progress_id+"');"
-								+"progress.value = progress.innerHTML = 100;"
-								+"var imgs = JSON.parse(xhr.responseText);"
-								+"if(imgs != '' && imgs.ok != undefined) {"
-									+"for (var i = 0; i < imgs.ok.length; i++) {"
-										+"var name = imgs.ok[i].replace('.','');"
-										+"if(document.getElementById('f_'+name) != '' && name != '') {"
-											+"var link = document.createElement('a');"
-											+"link.href='<?php echo $upload_folder; ?>'+imgs.ok[i];"
-											+"link.id='a_'+name;"
-											+"link.appendChild( document.getElementById('f_'+name));"
-											+"document.getElementById('uploaded').insertBefore(link, document.getElementById('uploaded').firstChild);"
-										+"}"
-									+"}"
-								+"}"
-								+"if(imgs != '' && imgs.err != undefined) {"
-									+"for (var i = 0; i < imgs.err.length; i++) {"
-										+"var name = imgs.err[i].replace('.','');"
-										+"if(document.getElementById('f_'+name) != '' && name != '') {"
-											+"document.getElementById('f_'+name).remove();"
-										+"}"
-									+"}"
-								+"}"
-								+"progress.remove();"
-							+"}"
-						+"};");
+					xhr.upload.onprogress = upload(progress_id);
+					xhr.onreadystatechange = onreadystatechange(xhr, progress_id);
 				}
 				xhr.send(formData);
 			}
