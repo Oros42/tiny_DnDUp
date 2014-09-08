@@ -33,6 +33,7 @@ Upload easily files by drag and drop in the web page.
 
 
 You can use multi-folders for uploading your files.  
+To initialize it, call http://.../tiny_DnDUp/?f=1  
 Open folder_liste.php and add in array your new folders.  
 Exemple :  
 ```
