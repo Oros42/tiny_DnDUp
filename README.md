@@ -29,3 +29,19 @@ Upload easily files by drag and drop in the web page.
 ![screenshot10](https://raw.github.com/Oros42/tiny_DnDUp/readme/screenshot/Capture-10.png)  
   
 ![screenshot11](https://raw.github.com/Oros42/tiny_DnDUp/readme/screenshot/Capture-11.png)  
+
+
+
+You can use multi-folders for uploading your files.  
+Open folder_liste.php and add in array your new folders.  
+Exemple :  
+```
+<?php /* $upload_folders=array(URL_KEY1=>PATH1, URL_KEY2=>PATH2,...); */
+/* You can add path here */
+$upload_folders=array("bob"=>"./upload1/","alice"=>"./upload2/", "toto"=>"../img_toto/"); ?>
+```
+
+Now you can call :  
+http://.../tiny_DnDUp/?f=bob  
+http://.../tiny_DnDUp/?f=alice  
+http://.../tiny_DnDUp/?f=toto  

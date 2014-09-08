@@ -4,18 +4,34 @@
  * Licence Public Domaine
  */
 $upload_folder="./upload/";
+$folder_key="";
+if(!empty($_GET) && !empty($_GET['f'])){
+	if(is_file('folder_liste.php')){
+		include 'folder_liste.php';
+		if(isset($upload_folders[$_GET['f']])){
+			$upload_folder=$upload_folders[$_GET['f']];
+			$folder_key="&f=".$_GET['f'];
+		}
+	}else{
+		file_put_contents('folder_liste.php', '<?php /* $upload_folders=array(URL_KEY1=>PATH1, URL_KEY2=>PATH2,...); */
+/* You can add path here */
+$upload_folders=array("upload"=>"'.$upload_folder.'"); ?>');
+	}
+}
+
 if(!file_exists($upload_folder)){
 	@mkdir($upload_folder) or die("Need to create $upload_folder with writing permission !");
 }
 if(!file_exists($upload_folder.".htaccess")){
-	file_put_contents($upload_folder.".htaccess", "Options -ExecCGI -Indexes
+	file_put_contents($upload_folder.".htaccess", "Options -ExecCGI
+# -Indexes
 RemoveHandler .php .phtml .php3 .php4 .php5 .html .htm .js
 RemoveType .php .phtml .php3 .php4 .php5 .html .htm .js
 php_flag engine off
 AddType text/plain .php .phtml .php3 .php4 .php5 .html .htm .js");
-	file_put_contents($upload_folder."index.html","");
+//	file_put_contents($upload_folder."index.html","");
 }
-if(!empty($_GET)){
+if(!empty($_GET) && isset($_GET['up'])){
 	header('content-type: application/json');
 	if(!empty($_FILES)){
 		$r=array();
@@ -191,7 +207,7 @@ if(!empty($_GET)){
 			if (tests.formdata) {
 				formData.append('up', 1);
 				var xhr = new XMLHttpRequest();
-				xhr.open('POST', 'index.php?up');
+				xhr.open('POST', 'index.php?up<?php echo $folder_key; ?>');
 				var progress_id="progress_"+new Date().getTime();
 				document.getElementById('progress_contener').innerHTML += '<progress id="'+progress_id+'" max="100" value="0">0</progress>';
 				if (tests.progress) {
