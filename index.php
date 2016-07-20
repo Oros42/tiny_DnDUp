@@ -86,7 +86,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 		</header>
 		<article>
 			<noscript><p class="fail">Javascript is blocked <span class="aah">😱</span></p></noscript>
-			<p id="upload" class="hidden"><label>Drag & drop not supported <span class="aah">😱</span>,<br/>Use this input field to upload file : <input type="file" name="file0"></label></p>
+			<p id="upload" class="hidden"><label>Drag & drop not supported <span class="aah">😱</span>,<br/>Use this input field to upload file : <input type="file" name="file0" multiple></label></p>
 			<p id="filereader" class="hidden">File API & FileReader API not supported <span class="aah">😱</span></p>
 			<p id="formdata" class="hidden">XHR2's FormData is not supported <span class="aah">😱</span></p>
 			<p id="progress" class="hidden">XHR2's upload progress isn't supported <span class="aah">😱</span></p>
@@ -228,8 +228,8 @@ if(!empty($_GET) && isset($_GET['up'])){
 			}
 		} else {
 			fileupload.className = 'fail';
-			fileupload.querySelector('input').onchange = function () { read(this.files); };
 		}
+		fileupload.querySelector('input').onchange = function () { read(this.files); };
 		//]]>
 	</script>
 </body>
