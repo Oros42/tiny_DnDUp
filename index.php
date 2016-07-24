@@ -1,21 +1,76 @@
 <?php
 /* By Oros
  * 2013-08-31
+ * update : 2016-07-24
  * Licence Public Domaine
  */
-$upload_folder="./upload/";
+
+if(is_file('config.php')){
+	include 'config.php';
+}else{
+	/* Default config file */
+	@file_put_contents('config.php', <<<EOF
+<?php
+// Default path where you upload files
+\$upload_folder="./upload/";
+
+// You can use multi-folders for uploading your files with :
+// \$upload_folders=array(URL_KEY1=>PATH1, URL_KEY2=>PATH2,...);
+// Example :
+// \$upload_folders=array(
+//     "bob"=>"./photo_bob/", // URL : http://.../tiny_DnDUp/?f=bob
+//     "alice"=>"./photo_alice/" // URL : http://.../tiny_DnDUp/?f=alice
+// );
+\$upload_folders=array("upload"=>"\$upload_folder");
+
+// Contents of the default htaccess for upload_folder
+\$default_htaccess="Options -ExecCGI
+# -Indexes
+RemoveHandler .php .phtml .php3 .php4 .php5 .html .htm .js
+RemoveType .php .phtml .php3 .php4 .php5 .html .htm .js
+php_flag engine off
+AddType text/plain .php .phtml .php3 .php4 .php5 .html .htm .js";
+
+// HTML contents of the default index.html for upload_folder.
+// If empty, then it doesn't create index.html.
+\$default_index="";
+
+// Height of preview pictures
+\$preview_height="400px";
+
+// Max size for a file
+// Example of value :
+// \$files_max_size="2M";
+// \$files_max_size="1G";
+\$files_max_size=ini_get('upload_max_filesize');
+// In your PHP conf, you should have upload_max_filesize > post_max_size !
+
+\$not_allowed_chars=array("..", "/", "\\\\", "\\n", "\\r", "\\0", "<", ">");
+\$not_allowed_files=array("", ".", "..", ".htaccess", "index.html", "index.php");
+
+// https://www.iana.org/assignments/media-types/media-types.xhtml
+\$allowed_file_types=array('image/png', 'image/jpeg', 'image/gif');
+?>
+EOF
+	) or die("Can't create config.php :-/");
+	echo "Setup done. Now you can edit config.php and reload this page.";
+	exit();
+}
+
+$files_max_size_val = trim($files_max_size);
+$last = strtolower($files_max_size_val[strlen($files_max_size_val)-1]);
+switch($last) { case 'g': $files_max_size_val *= 1024; case 'm': $files_max_size_val *= 1024; case 'k': $files_max_size_val *= 1024; }
+$files_max_size_val-=500000;
+if ($files_max_size_val <=0){
+	echo "\$files_max_size is not enough for uploading file !";
+	exit(1);
+}
+
 $folder_key="";
 if(!empty($_GET) && !empty($_GET['f'])){
-	if(is_file('folder_liste.php')){
-		include 'folder_liste.php';
-		if(isset($upload_folders[$_GET['f']])){
-			$upload_folder=$upload_folders[$_GET['f']];
-			$folder_key="&f=".$_GET['f'];
-		}
-	}else{
-		file_put_contents('folder_liste.php', '<?php /* $upload_folders=array(URL_KEY1=>PATH1, URL_KEY2=>PATH2,...); */
-/* You can add path here */
-$upload_folders=array("upload"=>"'.$upload_folder.'"); ?>');
+	if(isset($upload_folders[$_GET['f']])){
+		$upload_folder=$upload_folders[$_GET['f']];
+		$folder_key="&f=".$_GET['f'];
 	}
 }
 
@@ -23,30 +78,36 @@ if(!file_exists($upload_folder)){
 	@mkdir($upload_folder) or die("Need to create $upload_folder with writing permission !");
 }
 if(!file_exists($upload_folder.".htaccess")){
-	file_put_contents($upload_folder.".htaccess", "Options -ExecCGI
-# -Indexes
-RemoveHandler .php .phtml .php3 .php4 .php5 .html .htm .js
-RemoveType .php .phtml .php3 .php4 .php5 .html .htm .js
-php_flag engine off
-AddType text/plain .php .phtml .php3 .php4 .php5 .html .htm .js");
-//	file_put_contents($upload_folder."index.html","");
+	file_put_contents($upload_folder.".htaccess", $htaccess_content);
+	if(!empty($default_index)){
+		file_put_contents($upload_folder."index.html",$default_index);
+	}
 }
 if(!empty($_GET) && isset($_GET['up'])){
 	header('content-type: application/json');
 	if(!empty($_FILES)){
 		$r=array();
 		foreach ($_FILES as $file) {
-			$name=str_replace(array("..", "/", "\\", "\n", "\r", "\0"), "_", $file['name']);
-			if(!in_array($name, array("", ".", "..", ".htaccess", "index.html", "index.php"))){
-				$r['e'][0]= var_export ($file, true);
-				$r['e'][1]=$upload_folder.$name;
-				if(move_uploaded_file($file['tmp_name'], $upload_folder.$name)){
-					$r['ok'][]=$name;
+			$name=$file['name'];
+			foreach ($not_allowed_chars as $char) {
+				if(strpos($name, $char)!==false){
+					$r['err'][]="File name not allowed!";
+					echo json_encode($r);
+					exit();
+				}
+			}
+			if(in_array($file['type'], $allowed_file_types)){
+				if(!in_array($name, $not_allowed_files)){
+					if(move_uploaded_file($file['tmp_name'], $upload_folder.$name)){
+						$r['ok'][]=$name;
+					}else{
+						$r['err'][]="0_o for $name";
+					}
 				}else{
-					$r['err'][]=$name;
+					$r['err'][]="File $name not allowed!";
 				}
 			}else{
-				$r['err'][]=$name;
+				$r['err'][]="Bad file type for $name";
 			}
 		}
 		echo json_encode($r);
@@ -68,7 +129,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 		.file{margin:0;border:1px solid #C9C9C9;background:-moz-linear-gradient(center top,#F5F5F5 0px,#E9E9E9 100%) repeat scroll 0 0 transparent;border-radius:3px 3px 3px 3px;display:inline-block;padding:100px 20px 0;height:200px;vertical-align:text-bottom;text-align:center;max-width:200px;word-wrap:break-word;}
 		a{display:inline;text-decoration:none;}
 		a:hover{color:#CC0000;}
-		#uploaded{border:10px solid #ccc;min-height:50px;margin:20px auto;background-color:#EEEEEE;}
+		#uploadedset{border:10px solid #ccc;min-height:50px;margin:20px auto;background-color:#EEEEEE;}
 		progress{width:100%;}
 		progress:after{content:'%';}
 		progress[value]{-webkit-appearance:none;-moz-appearance:none;appearance:none;border:none;background-color:#eee;border-radius:2px;box-shadow:0 2px 5px rgba(0,0,0,0.25) inset;}
@@ -94,7 +155,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 			<p>Drag files from your desktop on to the drop zone. Files are upload automatically to this server.</p>
 			<div id="progress_contener"></div>
 			<fieldset id="dropZone"><legend>Drop zone</legend><p id="logo_drop">⎗</p></fieldset>
-			<fieldset id="uploaded"><legend>Files uploaded</legend></fieldset> 
+			<fieldset id="uploadedset"><div id="uploaded"></div><legend>Files uploaded - <a href="#" onclick="clear_uploaded_list(); return false;">Clear</a> </legend></fieldset> 
 		</article>
 	</section>
 	<br/><a href="https://github.com/Oros42/tiny_DnDUp">Source code</a>
@@ -112,6 +173,10 @@ if(!empty($_GET) && isset($_GET['up'])){
 				'image/jpeg':true,
 				'image/gif':true
 			},
+			allowedFileTypes = { <?php
+				foreach ($allowed_file_types as $type) {
+					echo "'$type':true,";
+				} ?> },
 			fileupload = document.getElementById('upload');
 
 		"filereader formdata progress".split(' ').forEach(function (api) {
@@ -126,7 +191,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 			if (tests.filereader === true && imgType[file.type] === true) {
 				var reader = new FileReader();
 				reader.onload = function (event) {
-					dropZone.insertAdjacentHTML('afterBegin','<img id="f_'+file.name.replace(".","")+'" src="'+event.target.result+'" height="300px" alt=""/>');
+					dropZone.insertAdjacentHTML('afterBegin','<img id="f_'+file.name.replace(".","")+'" src="'+event.target.result+'" height="<?php echo $preview_height; ?>" alt=""/>');
 				};
 				reader.readAsDataURL(file);
 			} else {
@@ -137,28 +202,36 @@ if(!empty($_GET) && isset($_GET['up'])){
 		function read(files) {
 			var formData = tests.formdata ? new FormData() : null;
 			var size_to_up=0;
+			var not_allowed_files=[];
+			var too_big_files=[];
 			for (var i = 0; i < files.length; i++) {
-				if(files[i]['size'] > <?php 
-					$val = trim(ini_get('post_max_size'));
-					$last = strtolower($val[strlen($val)-1]);
-					switch($last) { case 'g': $val *= 1024; case 'm': $val *= 1024; case 'k': $val *= 1024;	}
-					echo $val; ?>){
-					alert('File "'+files[i]['name']+'" is too big ! (><?php echo trim(ini_get('post_max_size')); ?>)');
+				if (allowedFileTypes[files[i].type] === true) {
+					if(files[i]['size'] > <?php echo $files_max_size_val; ?> ){
+						too_big_files.push(files[i]['name']);
+					}else{
+						size_to_up+=files[i]['size'];
+						if(size_to_up > <?php echo $files_max_size_val; ?>){
+							send(tests, formData);
+							var formData = tests.formdata ? new FormData() : null;
+							size_to_up=files[i]['size'];	
+						}
+						if (tests.formdata) {
+							formData.append('file'+i, files[i]);
+						}
+						preview(files[i]);
+					}
 				}else{
-					size_to_up+=files[i]['size']
-					if(size_to_up > <?php echo $val; ?>){
-						send(tests, formData);
-						var formData = tests.formdata ? new FormData() : null;
-						size_to_up=0;							
-					}
-					if (tests.formdata) {
-						formData.append('file'+i, files[i]);
-					}
-					preview(files[i]);
+					not_allowed_files.push(files[i]['name']);
 				}
 			}
 			if(size_to_up>0){
 				send(tests, formData);
+			}
+			if(not_allowed_files.length > 0){
+				alert("Not allowed files : "+not_allowed_files.join(', '));
+			}
+			if(too_big_files.length > 0){
+				alert("Files who are too big (><?php echo trim($files_max_size); ?>) : "+too_big_files.join(', '));
 			}
 		}
 
@@ -216,6 +289,10 @@ if(!empty($_GET) && isset($_GET['up'])){
 				}
 				xhr.send(formData);
 			}
+		}
+
+		function clear_uploaded_list(){
+			document.getElementById('uploaded').innerHTML="";
 		}
 
 		if ('draggable' in document.createElement('span')) {
