@@ -60,11 +60,6 @@ EOF
 $files_max_size_val = trim($files_max_size);
 $last = strtolower($files_max_size_val[strlen($files_max_size_val)-1]);
 switch($last) { case 'g': $files_max_size_val *= 1024; case 'm': $files_max_size_val *= 1024; case 'k': $files_max_size_val *= 1024; }
-$files_max_size_val-=500000;
-if ($files_max_size_val <=0){
-	echo "\$files_max_size is not enough for uploading file !";
-	exit(1);
-}
 
 $folder_key="";
 if(!empty($_GET) && !empty($_GET['f'])){
@@ -158,7 +153,16 @@ if(!empty($_GET) && isset($_GET['up'])){
 			<fieldset id="uploadedset"><div id="uploaded"></div><legend>Files uploaded - <a href="#" onclick="clear_uploaded_list(); return false;">Clear</a> </legend></fieldset> 
 		</article>
 	</section>
-	<br/><a href="https://github.com/Oros42/tiny_DnDUp">Source code</a>
+	<br/><a href="https://github.com/Oros42/tiny_DnDUp">Source code</a> - <a href="#" onclick="show_upload_infos(); return false;" id="upload_infos_btn">Show upload infos</a><br>
+	<div id="upload_infos" class="hidden">
+		Max size for a file : <?php echo trim($files_max_size); ?><br>
+		List of allowed file types :<br>
+<?php
+			foreach ($allowed_file_types as $type) {
+					echo "		      $type<br>\n";
+			}
+?>
+	</div>
 	<script type="text/javascript">
 		//<![CDATA[
 		if( navigator.appName == "Microsoft Internet Explorer"){ document.getElementById('IE').className="fail";}
@@ -293,6 +297,20 @@ if(!empty($_GET) && isset($_GET['up'])){
 
 		function clear_uploaded_list(){
 			document.getElementById('uploaded').innerHTML="";
+		}
+
+		var upload_infos_is_show=false;
+		function show_upload_infos(){
+			if(upload_infos_is_show){
+				// hidden
+				document.getElementById('upload_infos_btn').innerHTML="Show upload infos";
+				document.getElementById('upload_infos').className="hidden";
+			}else{
+				// show
+				document.getElementById('upload_infos_btn').innerHTML="Hide upload infos";
+				document.getElementById('upload_infos').className="";
+			}
+			upload_infos_is_show=!upload_infos_is_show;
 		}
 
 		if ('draggable' in document.createElement('span')) {
