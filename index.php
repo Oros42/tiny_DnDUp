@@ -39,11 +39,11 @@ AddType text/plain .php .phtml .php3 .php4 .php5 .html .htm .js";
 \$preview_height="400px";
 
 // Max size for a file
+\$files_max_size=ini_get('upload_max_filesize');
+// In your PHP conf, you should have upload_max_filesize > post_max_size !
 // Example of value :
 // \$files_max_size="2M";
 // \$files_max_size="1G";
-\$files_max_size=ini_get('upload_max_filesize');
-// In your PHP conf, you should have upload_max_filesize > post_max_size !
 
 \$not_allowed_chars=array("..", "/", "\\\\", "\\n", "\\r", "\\0", "<", ">");
 \$not_allowed_files=array("", ".", "..", ".htaccess", "index.html", "index.php");
@@ -52,7 +52,7 @@ AddType text/plain .php .phtml .php3 .php4 .php5 .html .htm .js";
 \$allowed_file_types=array('image/png', 'image/jpeg', 'image/gif');
 ?>
 EOF
-	) or die("Can't create config.php :-/");
+	) or die("Can't create config.php (please check folder permissions)");
 	echo "Setup done. Now you can edit config.php and reload this page.";
 	exit();
 }
@@ -85,14 +85,14 @@ if(!empty($_GET) && isset($_GET['up'])){
 		foreach ($_FILES as $file) {
 			$name=$file['name'];
 			foreach ($not_allowed_chars as $char) {
-				if(strpos($name, $char)!==false){
+				if(strpos(strtolower($name), $char)!==false){
 					$r['err'][]="File name not allowed!";
 					echo json_encode($r);
 					exit();
 				}
 			}
-			if(in_array($file['type'], $allowed_file_types)){
-				if(!in_array($name, $not_allowed_files)){
+			if(in_array(strtolower($file['type']), $allowed_file_types)){
+				if(!in_array(strtolower($name), $not_allowed_files)){
 					if(move_uploaded_file($file['tmp_name'], $upload_folder.$name)){
 						$r['ok'][]=$name;
 					}else{
@@ -192,7 +192,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 		});
 
 		function preview(file) {
-			if (tests.filereader === true && imgType[file.type] === true) {
+			if (tests.filereader === true && imgType[file.type.toLowerCase()] === true) {
 				var reader = new FileReader();
 				reader.onload = function (event) {
 					dropZone.insertAdjacentHTML('afterBegin','<img id="f_'+file.name.replace(".","")+'" src="'+event.target.result+'" height="<?php echo $preview_height; ?>" alt=""/>');
@@ -320,7 +320,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 				this.className = '';
 				e.preventDefault();
 				read(e.dataTransfer.files);
-			}
+			};
 		} else {
 			fileupload.className = 'fail';
 		}
