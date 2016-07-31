@@ -1,7 +1,7 @@
 <?php
 /* By Oros
  * 2013-08-31
- * update : 2016-07-24
+ * update : 2016-07-31
  * Licence Public Domaine
  */
 
@@ -131,6 +131,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 		.fail{background:#c00;padding:2px;color:#fff;}
 		.hidden{display:none !important;}
 		#logo_drop{position:absolute;width:100%;text-align:center;top:0px;margin-top:0px;margin-bottom:0px;font-size:15em;z-index:-1;}
+		#input_file{position:absolute;width:100%;height:100%;text-align:center;top:0px;margin-top:0px;margin-bottom:0px;opacity:0;cursor:pointer;z-index:100}
 		a img{border:none;}
 		.aah{font-size:2em;}
 	</style>
@@ -142,27 +143,30 @@ if(!empty($_GET) && isset($_GET['up'])){
 		</header>
 		<article>
 			<noscript><p class="fail">Javascript is blocked <span class="aah">😱</span></p></noscript>
-			<p id="upload" class="hidden"><label>Drag & drop not supported <span class="aah">😱</span>,<br/>Use this input field to upload file : <input type="file" name="file0" multiple></label></p>
+			<p id="upload" class="hidden"><label>Drag & drop not supported <span class="aah">😱</span></label></p>
 			<p id="filereader" class="hidden">File API & FileReader API not supported <span class="aah">😱</span></p>
 			<p id="formdata" class="hidden">XHR2's FormData is not supported <span class="aah">😱</span></p>
 			<p id="progress" class="hidden">XHR2's upload progress isn't supported <span class="aah">😱</span></p>
 			<p id="IE" class="hidden">Please don't use Internet Explorer. It's a big shit ! <a href="https://www.mozilla.org/">Firefox</a> is better.</p>
 			<p>Drag files from your desktop on to the drop zone. Files are upload automatically to this server.</p>
 			<div id="progress_contener"></div>
-			<fieldset id="dropZone"><legend>Drop zone</legend><p id="logo_drop">⎗</p></fieldset>
+			<fieldset id="dropZone"><legend>Drop zone</legend><p id="logo_drop">⎗</p><input id="input_file" type="file" name="file0" multiple></fieldset>
 			<fieldset id="uploadedset"><div id="uploaded"></div><legend>Files uploaded - <a href="#" onclick="clear_uploaded_list(); return false;">Clear</a> </legend></fieldset> 
 		</article>
-	</section>
-	<br/><a href="https://github.com/Oros42/tiny_DnDUp">Source code</a> - <a href="#" onclick="show_upload_infos(); return false;" id="upload_infos_btn">Show upload infos</a><br>
-	<div id="upload_infos" class="hidden">
-		Max size for a file : <?php echo trim($files_max_size); ?><br>
-		List of allowed file types :<br>
+		<footer>
+			<br/><a href="https://github.com/Oros42/tiny_DnDUp">Source code</a> - <a href="#" onclick="show_upload_infos(); return false;" id="upload_infos_btn">Show upload infos</a><br>
+			<div id="upload_infos" class="hidden">
+				Max size for a file : <?php echo trim($files_max_size); ?><br>
+				List of allowed file types :<br>
 <?php
 			foreach ($allowed_file_types as $type) {
-					echo "		      $type<br>\n";
+					echo "				$type<br>\n";
 			}
 ?>
-	</div>
+			</div>
+		</footer>
+	</section>
+
 	<script type="text/javascript">
 		//<![CDATA[
 		if( navigator.appName == "Microsoft Internet Explorer"){ document.getElementById('IE').className="fail";}
@@ -181,7 +185,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 				foreach ($allowed_file_types as $type) {
 					echo "'$type':true,";
 				} ?> },
-			fileupload = document.getElementById('upload');
+			files_id = {};
 
 		"filereader formdata progress".split(' ').forEach(function (api) {
 			if (tests[api] === false) {
@@ -191,16 +195,26 @@ if(!empty($_GET) && isset($_GET['up'])){
 			}
 		});
 
+		function name_to_id(name){
+			return "f_"+name.replace(".","").replace(" ","").replace("'","").replace('"',"").replace("<","").replace("/","");
+		}
+
 		function preview(file) {
+			if(files_id[file.name]){
+				// if reupload
+				document.getElementById(files_id[file.name]).remove();
+			}
+			var file_name = name_to_id(file.name);
 			if (tests.filereader === true && imgType[file.type.toLowerCase()] === true) {
 				var reader = new FileReader();
 				reader.onload = function (event) {
-					dropZone.insertAdjacentHTML('afterBegin','<img id="f_'+file.name.replace(".","")+'" src="'+event.target.result+'" height="<?php echo $preview_height; ?>" alt=""/>');
+					dropZone.insertAdjacentHTML('beforeend','<img id="'+file_name+'" src="'+event.target.result+'" height="<?php echo $preview_height; ?>" alt=""/>');
 				};
 				reader.readAsDataURL(file);
 			} else {
-				dropZone.insertAdjacentHTML('afterBegin', '<p class="file" id="f_'+file.name.replace(".","")+'">' + file.name+'</p>');
+				dropZone.insertAdjacentHTML('beforeend', '<p class="file" id="'+file_name+'">' + file.name+'</p>');
 			}
+			files_id[file.name] = name_to_id(file.name);
 		}
 
 		function read(files) {
@@ -249,29 +263,40 @@ if(!empty($_GET) && isset($_GET['up'])){
 			};
 		}
 
+		function move_f(id_name, name, t){
+			t=t-1;
+			if(document.getElementById(id_name) != undefined) {
+				var link = document.createElement('a');
+				link.href='<?php echo $upload_folder; ?>'+name;
+				link.id='a_'+id_name;
+				link.appendChild( document.getElementById(id_name));
+				document.getElementById('uploaded').insertBefore(link, document.getElementById('uploaded').firstChild);
+			}else{
+				if(t>0){
+					setTimeout(function(){move_f(id_name, name,t);}, 1000); // because some times, the preview is not finish to load
+				}
+			}
+		}
+
 		function onreadystatechange(xhr, progress_id){
 			return function(){
 				if(xhr.readyState == 4){
 					progress=document.getElementById(progress_id);
 					progress.value = progress.innerHTML = 100;
-					var imgs = JSON.parse(xhr.responseText);
-					if(imgs != '' && imgs.ok != undefined) {
-						for (var i = 0; i < imgs.ok.length; i++) {
-							var name = imgs.ok[i].replace('.','');
-							if(name != '' && document.getElementById('f_'+name) != undefined) {
-								var link = document.createElement('a');
-								link.href='<?php echo $upload_folder; ?>'+imgs.ok[i];
-								link.id='a_'+name;
-								link.appendChild( document.getElementById('f_'+name));
-								document.getElementById('uploaded').insertBefore(link, document.getElementById('uploaded').firstChild);
+					var files = JSON.parse(xhr.responseText);
+					if(files != '' && files.ok != undefined) {
+						for (var i = 0; i < files.ok.length; i++) {
+							var id_name = name_to_id(files.ok[i]);
+							if(id_name != ''){
+								move_f(id_name, files.ok[i],10);
 							}
 						}
 					}
-					if(imgs != '' && imgs.err != undefined) {
-						for (var i = 0; i < imgs.err.length; i++) {
-							var name = imgs.err[i].replace('.','');
-							if(name != '' && document.getElementById('f_'+name) != undefined) {
-								document.getElementById('f_'+name).remove();
+					if(files != '' && files.err != undefined) {
+						for (var i = 0; i < files.err.length; i++) {
+							var name = name_to_id(files.err[i]);
+							if(name != '' && document.getElementById(name) != undefined) {
+								document.getElementById(name).remove();
 							}
 						}
 					}
@@ -322,9 +347,9 @@ if(!empty($_GET) && isset($_GET['up'])){
 				read(e.dataTransfer.files);
 			};
 		} else {
-			fileupload.className = 'fail';
+			document.getElementById('upload').className = 'fail';
 		}
-		fileupload.querySelector('input').onchange = function () { read(this.files); };
+		document.getElementById('input_file').onchange = function () { read(this.files); };
 		//]]>
 	</script>
 </body>
