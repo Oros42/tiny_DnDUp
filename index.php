@@ -50,6 +50,7 @@ AddType text/plain .php .phtml .php3 .php4 .php5 .html .htm .js";
 
 // https://www.iana.org/assignments/media-types/media-types.xhtml
 \$allowed_file_types=array('image/png', 'image/jpeg', 'image/gif');
+//\$allowed_file_types=null; // == allow all files
 ?>
 EOF
 	) or die("Can't create config.php (please check folder permissions)");
@@ -91,7 +92,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 					exit();
 				}
 			}
-			if(in_array(strtolower($file['type']), $allowed_file_types)){
+			if(!empty($allowed_file_types) || in_array(strtolower($file['type']), $allowed_file_types)){
 				if(!in_array(strtolower($name), $not_allowed_files)){
 					if(move_uploaded_file($file['tmp_name'], $upload_folder.$name)){
 						$r['ok'][]=$name;
@@ -220,12 +221,12 @@ if(!empty($_GET) && isset($_GET['up'])){
 		function read(files) {
 			var formData = tests.formdata ? new FormData() : null;
 			var size_to_up=0;
-			var not_allowed_files=[];
+			var not_allowed_files={};
 			var too_big_files=[];
 			for (var i = 0; i < files.length; i++) {
-				if (allowedFileTypes[files[i].type] === true) {
+				if (Object.keys(allowedFileTypes).length === 0 || allowedFileTypes[files[i].type] === true) {
 					if(files[i]['size'] > <?php echo $files_max_size_val; ?> ){
-						too_big_files.push(files[i]['name']);
+						too_big_files.push(files[i].name);
 					}else{
 						size_to_up+=files[i]['size'];
 						if(size_to_up > <?php echo $files_max_size_val; ?>){
@@ -239,14 +240,18 @@ if(!empty($_GET) && isset($_GET['up'])){
 						preview(files[i]);
 					}
 				}else{
-					not_allowed_files.push(files[i]['name']);
+					not_allowed_files[files[i].name]=files[i].type;
 				}
 			}
 			if(size_to_up>0){
 				send(tests, formData);
 			}
-			if(not_allowed_files.length > 0){
-				alert("Not allowed files : "+not_allowed_files.join(', '));
+			if(Object.keys(not_allowed_files).length > 0){
+				var msg="Not allowed files :";
+				for( k in not_allowed_files){
+					msg+="\n"+k+" ("+not_allowed_files[k]+")";
+				}
+				alert(msg);
 			}
 			if(too_big_files.length > 0){
 				alert("Files who are too big (><?php echo trim($files_max_size); ?>) : "+too_big_files.join(', '));
