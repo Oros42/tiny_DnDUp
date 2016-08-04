@@ -92,7 +92,7 @@ if(!empty($_GET) && isset($_GET['up'])){
 					exit();
 				}
 			}
-			if(!empty($allowed_file_types) || in_array(strtolower($file['type']), $allowed_file_types)){
+			if(empty($allowed_file_types) || in_array(strtolower($file['type']), $allowed_file_types)){
 				if(!in_array(strtolower($name), $not_allowed_files)){
 					if(move_uploaded_file($file['tmp_name'], $upload_folder.$name)){
 						$r['ok'][]=$name;
