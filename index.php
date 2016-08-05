@@ -1,7 +1,7 @@
 <?php
 /* By Oros
  * 2013-08-31
- * update : 2016-07-31
+ * update : 2016-08-05
  * Licence Public Domaine
  */
 
@@ -73,11 +73,11 @@ if(!empty($_GET) && !empty($_GET['f'])){
 if(!file_exists($upload_folder)){
 	@mkdir($upload_folder) or die("Need to create $upload_folder with writing permission !");
 }
-if(!file_exists($upload_folder.".htaccess")){
-	file_put_contents($upload_folder.".htaccess", $htaccess_content);
-	if(!empty($default_index)){
-		file_put_contents($upload_folder."index.html",$default_index);
-	}
+if(!empty($default_htaccess) && !file_exists($upload_folder.".htaccess")){
+	file_put_contents($upload_folder.".htaccess", $default_htaccess);
+}
+if(!empty($default_index) && !file_exists($upload_folder."index.html")){
+	file_put_contents($upload_folder."index.html",$default_index);
 }
 if(!empty($_GET) && isset($_GET['up'])){
 	header('content-type: application/json');
