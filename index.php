@@ -60,6 +60,7 @@ EOF
 
 $files_max_size_val = trim($files_max_size);
 $last = strtolower($files_max_size_val[strlen($files_max_size_val)-1]);
+$files_max_size_val=(int)$files_max_size_val;
 switch($last) { case 'g': $files_max_size_val *= 1024; case 'm': $files_max_size_val *= 1024; case 'k': $files_max_size_val *= 1024; }
 
 $folder_key="";
